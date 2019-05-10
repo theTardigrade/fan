@@ -1,4 +1,4 @@
-package fan
+package work
 
 import (
 	"math"
@@ -13,16 +13,18 @@ var (
 )
 
 type worksheet struct {
-	handler           internalTypes.HandlerFunc
-	ordinal           int
-	result            error
-	completedWorkload chan<- *worksheet
+	handler            internalTypes.HandlerFunc
+	ordinal            int
+	result             error
+	completedWorkload  chan<- *worksheet
+	cancellationRecord *cancellationRecord
 }
 
-func Chans(bufferSize int) (errChan chan error, waitChan chan struct{}, workChan chan *worksheet) {
+func Data(bufferSize int) (errChan chan error, waitChan chan struct{}, workChan chan *worksheet, cancellationRecord *cancellationRecord) {
 	errChan = make(chan error)
 	waitChan = make(chan struct{})
 	workChan = make(chan *worksheet, bufferSize)
+	cancellationRecord = newCancellationRecord()
 
 	return
 }
@@ -31,47 +33,67 @@ func Add(
 	handler internalTypes.HandlerFunc,
 	ordinal int,
 	completedWorkload chan<- *worksheet,
+	cancellationRecord *cancellationRecord,
 ) {
 	worksheet := &worksheet{
-		handler:           handler,
-		ordinal:           ordinal,
-		completedWorkload: completedWorkload,
+		handler:            handler,
+		ordinal:            ordinal,
+		completedWorkload:  completedWorkload,
+		cancellationRecord: cancellationRecord,
 	}
 
 	pendingWorkload <- worksheet
 }
 
-func Manage(expectedCount int, errChan chan<- error, runningChan chan<- struct{}, workChan <-chan *worksheet) {
-	var seenCount int
+func Manage(
+	expectedCount int,
+	errChan chan<- error,
+	runningChan chan<- struct{},
+	workChan <-chan *worksheet,
+	cancellationRecord *cancellationRecord,
+) {
+	seenRecord := newSeenRecord()
 	var errOrdinal int = math.MaxInt32
 	var err error
 
 	for runningChan <- struct{}{}; ; {
 		select {
 		case worksheet := <-workChan:
+			o := worksheet.ordinal
+
 			if r := worksheet.result; r != nil {
-				if o := worksheet.ordinal; o < errOrdinal {
+				if o < errOrdinal {
 					errOrdinal = o
 					err = r
+
+					if seenRecord.HasSeenUpTo(o) {
+						goto EndFor
+					}
 				}
 			}
 
-			if seenCount++; seenCount == expectedCount {
-				errChan <- err
-				return
+			if seenRecord.SetSeen(o); seenRecord.Count() == expectedCount {
+				goto EndFor
 			}
 		}
 	}
+EndFor:
+
+	cancellationRecord.Set()
+	errChan <- err
 }
 
 func runWorker() {
 	for {
 		select {
 		case worksheet := <-pendingWorkload:
-			if err := worksheet.handler(worksheet.ordinal); err != nil {
-				worksheet.result = err
+			if !worksheet.cancellationRecord.IsSet() {
+				if err := worksheet.handler(worksheet.ordinal); err != nil {
+					worksheet.result = err
+				}
+
+				worksheet.completedWorkload <- worksheet
 			}
-			worksheet.completedWorkload <- worksheet
 		}
 	}
 }
