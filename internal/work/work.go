@@ -27,10 +27,6 @@ func Chans(bufferSize int) (errChan chan error, waitChan chan struct{}, workChan
 	return
 }
 
-func cancel() {
-
-}
-
 func Add(
 	handler internalTypes.HandlerFunc,
 	ordinal int,
