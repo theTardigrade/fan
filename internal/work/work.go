@@ -20,45 +20,31 @@ type worksheet struct {
 	cancellationRecord *cancellationRecord
 }
 
-func Data(bufferSize int) (errChan chan error, waitChan chan struct{}, workChan chan *worksheet, cancellationRecord *cancellationRecord) {
-	errChan = make(chan error)
-	waitChan = make(chan struct{})
-	workChan = make(chan *worksheet, bufferSize)
-	cancellationRecord = newCancellationRecord()
-
-	return
-}
-
 func Add(
 	handler internalTypes.HandlerFunc,
 	ordinal int,
-	completedWorkload chan<- *worksheet,
-	cancellationRecord *cancellationRecord,
+	datum *datum,
 ) {
 	worksheet := &worksheet{
 		handler:            handler,
 		ordinal:            ordinal,
-		completedWorkload:  completedWorkload,
-		cancellationRecord: cancellationRecord,
+		completedWorkload:  datum.workChan,
+		cancellationRecord: datum.cancellationRecord,
 	}
 
 	pendingWorkload <- worksheet
 }
 
 func Manage(
-	expectedCount int,
-	errChan chan<- error,
-	runningChan chan<- struct{},
-	workChan <-chan *worksheet,
-	cancellationRecord *cancellationRecord,
+	datum *datum,
 ) {
 	seenRecord := newSeenRecord()
 	var errOrdinal int = math.MaxInt32
 	var err error
 
-	for runningChan <- struct{}{}; ; {
+	for datum.WaitChan <- struct{}{}; ; {
 		select {
-		case worksheet := <-workChan:
+		case worksheet := <-datum.workChan:
 			o := worksheet.ordinal
 
 			if r := worksheet.result; r != nil {
@@ -72,15 +58,15 @@ func Manage(
 				}
 			}
 
-			if seenRecord.SetSeen(o); seenRecord.Count() == expectedCount {
+			if seenRecord.SetSeen(o); seenRecord.Count() == datum.expectedCount {
 				goto EndFor
 			}
 		}
 	}
 EndFor:
 
-	cancellationRecord.Set()
-	errChan <- err
+	datum.cancellationRecord.Set()
+	datum.ErrChan <- err
 }
 
 func runWorker() {
