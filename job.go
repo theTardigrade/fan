@@ -98,6 +98,12 @@ func (j *jobsheet) WaitForSome(count int) {
 	}
 }
 
+func (j *jobsheet) stop() {
+	for i := 0; i < numCPU; i++ {
+		j.stopWork <- struct{}{}
+	}
+}
+
 func (j *jobsheet) Wait() {
 	var workCount int
 
@@ -113,25 +119,26 @@ outerLoop:
 	}
 
 	workSubcount := workCount / numCPU
-	var wg sync.WaitGroup
 
-	wg.Add(numCPU)
+	if workSubcount > 0 {
+		var wg sync.WaitGroup
 
-	for i := 0; i < numCPU; i++ {
-		go func() {
-			defer wg.Done()
+		wg.Add(numCPU)
 
-			j.WaitForSome(workSubcount)
-		}()
+		for i := 0; i < numCPU; i++ {
+			go func() {
+				defer wg.Done()
+
+				j.WaitForSome(workSubcount)
+			}()
+		}
+
+		wg.Wait()
 	}
-
-	wg.Wait()
 
 	if workCount -= workSubcount * numCPU; workCount > 0 {
 		j.WaitForSome(workCount)
 	}
 
-	for i := 0; i < numCPU; i++ {
-		j.stopWork <- struct{}{}
-	}
+	go j.stop()
 }
