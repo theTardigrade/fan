@@ -17,6 +17,7 @@ type jobsheet struct {
 }
 
 const (
+	maxInt                        = int(^uint(0) >> 1)
 	jobsheetWorkloadMaxBufferSize = 1e6
 )
 
@@ -32,6 +33,7 @@ func newJobsheet(workCount int) *jobsheet {
 	}
 
 	return &jobsheet{
+		resultIndex:       maxInt,
 		workCount:         workCount,
 		workerCount:       workerCount,
 		pendingWorkload:   make(chan *worksheet, workloadBufferSize),
@@ -89,7 +91,7 @@ func (j *jobsheet) SetResult(result error, resultIndex int) {
 	defer j.resultMutex.Unlock()
 	j.resultMutex.Lock()
 
-	if i := j.resultIndex; resultIndex < i || i == 0 {
+	if resultIndex <= j.resultIndex {
 		j.result, j.resultIndex = result, resultIndex
 	}
 }
