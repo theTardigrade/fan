@@ -15,11 +15,21 @@ type jobsheet struct {
 	stopWork          chan struct{}
 }
 
+const (
+	jobsheetMaxBufferSize = 1e6
+)
+
 func newJobsheet(workCount int) *jobsheet {
+	workloadBufferSize := workCount
+
+	if workloadBufferSize > jobsheetMaxBufferSize {
+		workloadBufferSize = jobsheetMaxBufferSize
+	}
+
 	return &jobsheet{
 		workCount:         workCount,
-		pendingWorkload:   make(chan *worksheet, numCPU),
-		completedWorkload: make(chan *worksheet, numCPU),
+		pendingWorkload:   make(chan *worksheet, workloadBufferSize),
+		completedWorkload: make(chan *worksheet, workloadBufferSize),
 		stopWork:          make(chan struct{}),
 		addedWorkCount:    make(chan int, 1),
 	}
@@ -118,9 +128,7 @@ outerLoop:
 		}
 	}
 
-	workSubcount := workCount / numCPU
-
-	if workSubcount > 0 {
+	if workSubcount := workCount / numCPU; workSubcount > 0 {
 		var wg sync.WaitGroup
 
 		wg.Add(numCPU)
@@ -134,9 +142,11 @@ outerLoop:
 		}
 
 		wg.Wait()
+
+		workCount -= workSubcount * numCPU
 	}
 
-	if workCount -= workSubcount * numCPU; workCount > 0 {
+	if workCount > 0 {
 		j.WaitForSome(workCount)
 	}
 
