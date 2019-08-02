@@ -10,6 +10,7 @@ type jobsheet struct {
 	resultMutex       sync.RWMutex
 	workCount         int
 	addedWorkCount    chan int
+	pendingWorkload   chan *worksheet
 	completedWorkload chan *worksheet
 	stopWork          chan struct{}
 }
@@ -17,6 +18,7 @@ type jobsheet struct {
 func newJobsheet(workCount int, completedWorkload chan *worksheet) *jobsheet {
 	return &jobsheet{
 		workCount:         workCount,
+		pendingWorkload:   make(chan *worksheet, numCPU),
 		completedWorkload: completedWorkload,
 		stopWork:          make(chan struct{}),
 		addedWorkCount:    make(chan int, 1),
@@ -25,7 +27,7 @@ func newJobsheet(workCount int, completedWorkload chan *worksheet) *jobsheet {
 
 func (j *jobsheet) addOne(handler Handler, index int) (added bool) {
 	if j.isWorthStarting(index) {
-		pendingWorkload <- newWorksheet(handler, index, j)
+		j.pendingWorkload <- newWorksheet(handler, index, j)
 		added = true
 	}
 
@@ -76,7 +78,7 @@ func (j *jobsheet) SetResult(result error, resultIndex int) {
 func (j *jobsheet) startWork() {
 	for {
 		select {
-		case worksheet := <-pendingWorkload:
+		case worksheet := <-j.pendingWorkload:
 			worksheet.Work()
 		case <-j.stopWork:
 			return
