@@ -22,13 +22,11 @@ const (
 
 func newJobsheet(workCount int) *jobsheet {
 	workloadBufferSize := workCount
-
 	if workloadBufferSize > jobsheetWorkloadMaxBufferSize {
 		workloadBufferSize = jobsheetWorkloadMaxBufferSize
 	}
 
 	workerCount := numCPU
-
 	if workerCount > workCount {
 		workerCount = workCount
 	}
@@ -38,7 +36,7 @@ func newJobsheet(workCount int) *jobsheet {
 		workerCount:       workerCount,
 		pendingWorkload:   make(chan *worksheet, workloadBufferSize),
 		completedWorkload: make(chan *worksheet, workloadBufferSize),
-		stopWork:          make(chan struct{}),
+		stopWork:          make(chan struct{}, workerCount),
 		addedWorkCount:    make(chan int, 1),
 	}
 }
