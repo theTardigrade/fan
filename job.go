@@ -5,15 +5,15 @@ import (
 )
 
 type jobsheet struct {
-	result             error
-	resultIndex        int
-	resultMutex        sync.RWMutex
-	workCount          int
-	addedWorkCount     chan int
-	pendingWorkload    chan *worksheet
-	completedWorkload  chan *worksheet
-	startedWorkerCount int
-	stopWork           chan struct{}
+	result            error
+	resultIndex       int
+	resultMutex       sync.RWMutex
+	workCount         int
+	workerCount       int
+	addedWorkCount    chan int
+	pendingWorkload   chan *worksheet
+	completedWorkload chan *worksheet
+	stopWork          chan struct{}
 }
 
 const (
@@ -27,8 +27,15 @@ func newJobsheet(workCount int) *jobsheet {
 		workloadBufferSize = jobsheetWorkloadMaxBufferSize
 	}
 
+	workerCount := numCPU
+
+	if workerCount > workCount {
+		workerCount = workCount
+	}
+
 	return &jobsheet{
 		workCount:         workCount,
+		workerCount:       workerCount,
 		pendingWorkload:   make(chan *worksheet, workloadBufferSize),
 		completedWorkload: make(chan *worksheet, workloadBufferSize),
 		stopWork:          make(chan struct{}),
@@ -102,28 +109,20 @@ func (j *jobsheet) work() {
 }
 
 func (j *jobsheet) Start() {
-	count := numCPU
-
-	if count > j.workCount {
-		count = j.workCount
-	}
-
-	for i := 0; i < count; i++ {
+	for i, l := 0, j.workerCount; i < l; i++ {
 		go j.work()
 	}
+}
 
-	j.startedWorkerCount = count
+func (j *jobsheet) stop() {
+	for i, l := 0, j.workerCount; i < l; i++ {
+		j.stopWork <- struct{}{}
+	}
 }
 
 func (j *jobsheet) WaitForSome(count int) {
 	for i := 0; i < count; i++ {
 		<-j.completedWorkload
-	}
-}
-
-func (j *jobsheet) stop() {
-	for i, l := 0, j.startedWorkerCount; i < l; i++ {
-		j.stopWork <- struct{}{}
 	}
 }
 
