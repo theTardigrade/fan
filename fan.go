@@ -1,44 +1,32 @@
 package fan
 
-import (
-	internalTypes "github.com/theTardigrade/fan/internal/types"
-	internalWork "github.com/theTardigrade/fan/internal/work"
-)
+type Handler (func(int) error)
 
-type HandlerFunc internalTypes.HandlerFunc
+func Handle(handlers []Handler) error {
+	count := len(handlers)
+	completedWorkload := make(chan *worksheet, numCPU)
+	jobsheet := newJobsheet(count, completedWorkload)
 
-func Handle(handlers ...HandlerFunc) (err error) {
-	if l := len(handlers); l > 0 {
-		datum := internalWork.NewDatum(l)
+	jobsheet.Work()
 
-		go internalWork.Manage(datum)
+	go jobsheet.Add(handlers)
 
-		<-datum.WaitChan
+	jobsheet.Wait()
 
-		for i := 0; i < l; i++ {
-			go internalWork.Add(internalTypes.HandlerFunc(handlers[i]), i, datum)
-		}
-
-		err = <-datum.ErrChan
-	}
-
-	return
+	return jobsheet.result
 }
 
-func HandleRepeated(handler HandlerFunc, repeats int) (err error) {
-	if repeats > 0 {
-		datum := internalWork.NewDatum(repeats)
+func HandleRepeated(handler Handler, count int) error {
+	completedWorkload := make(chan *worksheet, numCPU)
+	jobsheet := newJobsheet(count, completedWorkload)
 
-		go internalWork.Manage(datum)
+	jobsheet.Work()
 
-		<-datum.WaitChan
+	go jobsheet.AddRepeated(handler, count)
 
-		for i := 0; i < repeats; i++ {
-			go internalWork.Add(internalTypes.HandlerFunc(handler), i, datum)
-		}
+	jobsheet.Wait()
 
-		err = <-datum.ErrChan
-	}
+	err := jobsheet.result
 
-	return
+	return err
 }
