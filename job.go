@@ -15,11 +15,11 @@ type jobsheet struct {
 	stopWork          chan struct{}
 }
 
-func newJobsheet(workCount int, completedWorkload chan *worksheet) *jobsheet {
+func newJobsheet(workCount int) *jobsheet {
 	return &jobsheet{
 		workCount:         workCount,
 		pendingWorkload:   make(chan *worksheet, numCPU),
-		completedWorkload: completedWorkload,
+		completedWorkload: make(chan *worksheet, numCPU),
 		stopWork:          make(chan struct{}),
 		addedWorkCount:    make(chan int, 1),
 	}

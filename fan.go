@@ -4,8 +4,7 @@ type Handler (func(int) error)
 
 func Handle(handlers []Handler) error {
 	count := len(handlers)
-	completedWorkload := make(chan *worksheet, numCPU)
-	jobsheet := newJobsheet(count, completedWorkload)
+	jobsheet := newJobsheet(count)
 
 	jobsheet.Work()
 
@@ -17,8 +16,7 @@ func Handle(handlers []Handler) error {
 }
 
 func HandleRepeated(handler Handler, count int) error {
-	completedWorkload := make(chan *worksheet, numCPU)
-	jobsheet := newJobsheet(count, completedWorkload)
+	jobsheet := newJobsheet(count)
 
 	jobsheet.Work()
 
@@ -26,7 +24,5 @@ func HandleRepeated(handler Handler, count int) error {
 
 	jobsheet.Wait()
 
-	err := jobsheet.result
-
-	return err
+	return jobsheet.result
 }
