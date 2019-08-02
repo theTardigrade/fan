@@ -5,8 +5,7 @@ import (
 )
 
 var (
-	numCPU          = runtime.NumCPU()
-	pendingWorkload = make(chan *worksheet, numCPU)
+	numCPU = runtime.NumCPU()
 )
 
 type worksheet struct {
