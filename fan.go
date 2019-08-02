@@ -1,12 +1,14 @@
 package fan
 
+import "time"
+
 type Handler (func(int) error)
 
 func Handle(handlers []Handler) error {
 	count := len(handlers)
 	jobsheet := newJobsheet(count)
 
-	jobsheet.Work()
+	jobsheet.Start()
 
 	go jobsheet.Add(handlers)
 
@@ -18,11 +20,12 @@ func Handle(handlers []Handler) error {
 func HandleRepeated(handler Handler, count int) error {
 	jobsheet := newJobsheet(count)
 
-	jobsheet.Work()
+	jobsheet.Start()
 
 	go jobsheet.AddRepeated(handler, count)
 
 	jobsheet.Wait()
+	time.Sleep(time.Second * 2)
 
 	return jobsheet.result
 }

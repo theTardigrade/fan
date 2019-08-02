@@ -5,14 +5,15 @@ import (
 )
 
 type jobsheet struct {
-	result            error
-	resultIndex       int
-	resultMutex       sync.RWMutex
-	workCount         int
-	addedWorkCount    chan int
-	pendingWorkload   chan *worksheet
-	completedWorkload chan *worksheet
-	stopWork          chan struct{}
+	result             error
+	resultIndex        int
+	resultMutex        sync.RWMutex
+	workCount          int
+	addedWorkCount     chan int
+	pendingWorkload    chan *worksheet
+	completedWorkload  chan *worksheet
+	startedWorkerCount int
+	stopWork           chan struct{}
 }
 
 const (
@@ -89,7 +90,7 @@ func (j *jobsheet) SetResult(result error, resultIndex int) {
 }
 
 // runs in own goroutine
-func (j *jobsheet) startWork() {
+func (j *jobsheet) work() {
 	for {
 		select {
 		case worksheet := <-j.pendingWorkload:
@@ -100,10 +101,18 @@ func (j *jobsheet) startWork() {
 	}
 }
 
-func (j *jobsheet) Work() {
-	for i := 0; i < numCPU; i++ {
-		go j.startWork()
+func (j *jobsheet) Start() {
+	count := numCPU
+
+	if count > j.workCount {
+		count = j.workCount
 	}
+
+	for i := 0; i < count; i++ {
+		go j.work()
+	}
+
+	j.startedWorkerCount = count
 }
 
 func (j *jobsheet) WaitForSome(count int) {
@@ -113,7 +122,7 @@ func (j *jobsheet) WaitForSome(count int) {
 }
 
 func (j *jobsheet) stop() {
-	for i := 0; i < numCPU; i++ {
+	for i, l := 0, j.startedWorkerCount; i < l; i++ {
 		j.stopWork <- struct{}{}
 	}
 }
