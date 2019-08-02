@@ -34,28 +34,28 @@ func (j *jobsheet) addOne(handler Handler, index int) (added bool) {
 	return
 }
 
-func (jobsheet *jobsheet) Add(handlers []Handler) {
+func (j *jobsheet) Add(handlers []Handler) {
 	var addedWorkCount int
 
-	for i, l := 0, jobsheet.workCount; i < l; i++ {
-		if jobsheet.addOne(handlers[i], i) {
+	for i, l := 0, j.workCount; i < l; i++ {
+		if j.addOne(handlers[i], i) {
 			addedWorkCount++
 		}
 	}
 
-	jobsheet.addedWorkCount <- addedWorkCount
+	j.addedWorkCount <- addedWorkCount
 }
 
-func (jobsheet *jobsheet) AddRepeated(handler Handler, count int) {
+func (j *jobsheet) AddRepeated(handler Handler, count int) {
 	var addedWorkCount int
 
-	for i, l := 0, jobsheet.workCount; i < l; i++ {
-		if jobsheet.addOne(handler, i) {
+	for i, l := 0, j.workCount; i < l; i++ {
+		if j.addOne(handler, i) {
 			addedWorkCount++
 		}
 	}
 
-	jobsheet.addedWorkCount <- addedWorkCount
+	j.addedWorkCount <- addedWorkCount
 }
 
 func (j *jobsheet) isWorthStarting(index int) bool {
@@ -93,6 +93,9 @@ func (j *jobsheet) Work() {
 }
 
 func (j *jobsheet) WaitForSome(count int) {
+	for i := 0; i < count; i++ {
+		<-j.completedWorkload
+	}
 }
 
 func (j *jobsheet) Wait() {
