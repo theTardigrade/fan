@@ -1,7 +1,5 @@
 package fan
 
-import "time"
-
 type Handler (func(int) error)
 
 func Handle(handlers []Handler) error {
@@ -25,7 +23,6 @@ func HandleRepeated(handler Handler, count int) error {
 	go jobsheet.AddRepeated(handler, count)
 
 	jobsheet.Wait()
-	time.Sleep(time.Second * 2)
 
 	return jobsheet.result
 }
