@@ -16,14 +16,14 @@ type jobsheet struct {
 }
 
 const (
-	jobsheetMaxBufferSize = 1e6
+	jobsheetWorkloadMaxBufferSize = 1e6
 )
 
 func newJobsheet(workCount int) *jobsheet {
 	workloadBufferSize := workCount
 
-	if workloadBufferSize > jobsheetMaxBufferSize {
-		workloadBufferSize = jobsheetMaxBufferSize
+	if workloadBufferSize > jobsheetWorkloadMaxBufferSize {
+		workloadBufferSize = jobsheetWorkloadMaxBufferSize
 	}
 
 	return &jobsheet{
@@ -35,10 +35,10 @@ func newJobsheet(workCount int) *jobsheet {
 	}
 }
 
-func (j *jobsheet) addOne(handler Handler, index int) (added bool) {
+func (j *jobsheet) addOne(handler Handler, index int) (wasWorthStarting bool) {
 	if j.isWorthStarting(index) {
 		j.pendingWorkload <- newWorksheet(handler, index, j)
-		added = true
+		wasWorthStarting = true
 	}
 
 	return
@@ -50,6 +50,8 @@ func (j *jobsheet) Add(handlers []Handler) {
 	for i, l := 0, j.workCount; i < l; i++ {
 		if j.addOne(handlers[i], i) {
 			addedWorkCount++
+		} else {
+			break
 		}
 	}
 
@@ -62,6 +64,8 @@ func (j *jobsheet) AddRepeated(handler Handler, count int) {
 	for i, l := 0, j.workCount; i < l; i++ {
 		if j.addOne(handler, i) {
 			addedWorkCount++
+		} else {
+			break
 		}
 	}
 
