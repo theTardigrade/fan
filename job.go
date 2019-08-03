@@ -69,7 +69,7 @@ func (j *jobsheet) Add(handlers []Handler) {
 	j.addedWorkCount <- addedWorkCount
 }
 
-func (j *jobsheet) AddRepeated(handler Handler, count int) {
+func (j *jobsheet) AddRepeated(handler Handler) {
 	var addedWorkCount int
 
 	for i, l := 0, j.workCount; i < l; i++ {

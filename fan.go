@@ -20,7 +20,7 @@ func HandleRepeated(handler Handler, count int) error {
 
 	jobsheet.Start()
 
-	go jobsheet.AddRepeated(handler, count)
+	go jobsheet.AddRepeated(handler)
 
 	jobsheet.Wait()
 
