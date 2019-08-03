@@ -1,13 +1,5 @@
 package fan
 
-import (
-	"runtime"
-)
-
-var (
-	numCPU = runtime.NumCPU()
-)
-
 type worksheet struct {
 	handler  Handler
 	index    int

@@ -1,6 +1,7 @@
 package fan
 
 import (
+	"runtime"
 	"sync"
 )
 
@@ -18,6 +19,10 @@ type jobsheet struct {
 
 const (
 	jobsheetWorkloadMaxBufferSize = 1e6
+)
+
+var (
+	numCPU = runtime.NumCPU()
 )
 
 func newJobsheet(workCount int) *jobsheet {
