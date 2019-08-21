@@ -32,7 +32,7 @@ func HandleRepeated(handler Handler, count int) error {
 func HandleWithAccumulation(handlers []Handler) (errors []error) {
 	var errorsMutex sync.Mutex
 
-	accumulateHandler := func(i int) error {
+	accumulationHandler := func(i int) error {
 		if err := handlers[i](i); err != nil {
 			defer errorsMutex.Unlock()
 			errorsMutex.Lock()
@@ -48,7 +48,7 @@ func HandleWithAccumulation(handlers []Handler) (errors []error) {
 
 	jobsheet.Start()
 
-	go jobsheet.AddRepeated(accumulateHandler)
+	go jobsheet.AddRepeated(accumulationHandler)
 
 	jobsheet.Wait()
 
@@ -58,7 +58,7 @@ func HandleWithAccumulation(handlers []Handler) (errors []error) {
 func HandleRepeatedWithAccumulation(handler Handler, count int) (errors []error) {
 	var errorsMutex sync.Mutex
 
-	accumulateHandler := func(i int) error {
+	accumulationHandler := func(i int) error {
 		if err := handler(i); err != nil {
 			defer errorsMutex.Unlock()
 			errorsMutex.Lock()
@@ -73,7 +73,7 @@ func HandleRepeatedWithAccumulation(handler Handler, count int) (errors []error)
 
 	jobsheet.Start()
 
-	go jobsheet.AddRepeated(accumulateHandler)
+	go jobsheet.AddRepeated(accumulationHandler)
 
 	jobsheet.Wait()
 
