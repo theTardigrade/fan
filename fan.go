@@ -43,7 +43,14 @@ func HandleWithAccumulation(handlers []Handler) (errors []error) {
 		return nil
 	}
 
-	HandleRepeated(accumulateHandler, len(handlers))
+	count := len(handlers)
+	jobsheet := newJobsheet(count)
+
+	jobsheet.Start()
+
+	go jobsheet.AddRepeated(accumulateHandler)
+
+	jobsheet.Wait()
 
 	return
 }
@@ -62,7 +69,13 @@ func HandleRepeatedWithAccumulation(handler Handler, count int) (errors []error)
 		return nil
 	}
 
-	HandleRepeated(accumulateHandler, count)
+	jobsheet := newJobsheet(count)
+
+	jobsheet.Start()
+
+	go jobsheet.AddRepeated(accumulateHandler)
+
+	jobsheet.Wait()
 
 	return
 }
