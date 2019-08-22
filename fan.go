@@ -1,7 +1,5 @@
 package fan
 
-import "sync"
-
 type Handler (func(int) error)
 
 func Handle(handlers []Handler) error {
@@ -29,21 +27,17 @@ func HandleRepeated(handler Handler, count int) error {
 	return jobsheet.result
 }
 
-func HandleWithAccumulation(handlers []Handler) (errors []error) {
-	var errorsMutex sync.Mutex
-
+func HandleWithAccumulation(handlers []Handler) *accumulationResult {
+	count := len(handlers)
+	accumulationResult := NewAccumulationData(count)
 	accumulationHandler := func(i int) error {
 		if err := handlers[i](i); err != nil {
-			defer errorsMutex.Unlock()
-			errorsMutex.Lock()
-
-			errors = append(errors, err)
+			accumulationResult.AddError(err, i)
 		}
 
 		return nil
 	}
 
-	count := len(handlers)
 	jobsheet := newJobsheet(count)
 
 	jobsheet.Start()
@@ -51,21 +45,17 @@ func HandleWithAccumulation(handlers []Handler) (errors []error) {
 	go jobsheet.AddRepeated(accumulationHandler)
 
 	jobsheet.Wait()
+	accumulationResult.ShrinkData()
 
-	return
+	return accumulationResult
 }
 
-func HandleRepeatedWithAccumulation(handler Handler, count int) (errors []error) {
-	var errorsMutex sync.Mutex
-
+func HandleRepeatedWithAccumulation(handler Handler, count int) *accumulationResult {
+	accumulationResult := NewAccumulationData(count)
 	accumulationHandler := func(i int) error {
 		if err := handler(i); err != nil {
-			defer errorsMutex.Unlock()
-			errorsMutex.Lock()
-
-			errors = append(errors, err)
+			accumulationResult.AddError(err, i)
 		}
-
 		return nil
 	}
 
@@ -76,6 +66,7 @@ func HandleRepeatedWithAccumulation(handler Handler, count int) (errors []error)
 	go jobsheet.AddRepeated(accumulationHandler)
 
 	jobsheet.Wait()
+	accumulationResult.ShrinkData()
 
-	return
+	return accumulationResult
 }
