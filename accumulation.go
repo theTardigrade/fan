@@ -37,6 +37,28 @@ func (a *accumulationResult) AddError(err error, Index int) {
 }
 
 // non-concurrent
+func (a *accumulationResult) Handler(rawHandlers []Handler) Handler {
+	return func(i int) error {
+		if err := rawHandlers[i](i); err != nil {
+			a.AddError(err, i)
+		}
+
+		return nil
+	}
+}
+
+// non-concurrent
+func (a *accumulationResult) HandlerRepeated(rawHandler Handler) Handler {
+	return func(i int) error {
+		if err := rawHandler(i); err != nil {
+			a.AddError(err, i)
+		}
+
+		return nil
+	}
+}
+
+// non-concurrent
 func (a *accumulationResult) ShrinkData() {
 	a.Data = a.Data[:len(a.Data)]
 }
