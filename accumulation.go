@@ -26,7 +26,7 @@ func NewAccumulationData(workCount int) *accumulationResult {
 }
 
 // concurrent
-func (a *accumulationResult) AddError(err error, Index int) {
+func (a *accumulationResult) addError(err error, Index int) {
 	defer a.mutex.Unlock()
 	a.mutex.Lock()
 
@@ -37,10 +37,10 @@ func (a *accumulationResult) AddError(err error, Index int) {
 }
 
 // non-concurrent
-func (a *accumulationResult) Handler(rawHandlers []Handler) Handler {
+func (a *accumulationResult) handler(rawHandlers []Handler) Handler {
 	return func(i int) error {
 		if err := rawHandlers[i](i); err != nil {
-			a.AddError(err, i)
+			a.addError(err, i)
 		}
 
 		return nil
@@ -48,10 +48,10 @@ func (a *accumulationResult) Handler(rawHandlers []Handler) Handler {
 }
 
 // non-concurrent
-func (a *accumulationResult) HandlerRepeated(rawHandler Handler) Handler {
+func (a *accumulationResult) handlerRepeated(rawHandler Handler) Handler {
 	return func(i int) error {
 		if err := rawHandler(i); err != nil {
-			a.AddError(err, i)
+			a.addError(err, i)
 		}
 
 		return nil
@@ -59,7 +59,7 @@ func (a *accumulationResult) HandlerRepeated(rawHandler Handler) Handler {
 }
 
 // non-concurrent
-func (a *accumulationResult) ShrinkData() {
+func (a *accumulationResult) shrinkData() {
 	a.Data = a.Data[:len(a.Data)]
 }
 

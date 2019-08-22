@@ -30,7 +30,7 @@ func HandleRepeated(handler Handler, count int) error {
 func HandleWithAccumulation(handlers []Handler) *accumulationResult {
 	count := len(handlers)
 	accumulationResult := NewAccumulationData(count)
-	accumulationHandler := accumulationResult.Handler(handlers)
+	accumulationHandler := accumulationResult.handler(handlers)
 	jobsheet := newJobsheet(count)
 
 	jobsheet.Start()
@@ -38,14 +38,14 @@ func HandleWithAccumulation(handlers []Handler) *accumulationResult {
 	go jobsheet.AddRepeated(accumulationHandler)
 
 	jobsheet.Wait()
-	accumulationResult.ShrinkData()
+	accumulationResult.shrinkData()
 
 	return accumulationResult
 }
 
 func HandleRepeatedWithAccumulation(handler Handler, count int) *accumulationResult {
 	accumulationResult := NewAccumulationData(count)
-	accumulationHandler := accumulationResult.HandlerRepeated(handler)
+	accumulationHandler := accumulationResult.handlerRepeated(handler)
 	jobsheet := newJobsheet(count)
 
 	jobsheet.Start()
@@ -53,7 +53,7 @@ func HandleRepeatedWithAccumulation(handler Handler, count int) *accumulationRes
 	go jobsheet.AddRepeated(accumulationHandler)
 
 	jobsheet.Wait()
-	accumulationResult.ShrinkData()
+	accumulationResult.shrinkData()
 
 	return accumulationResult
 }
