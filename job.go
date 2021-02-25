@@ -91,6 +91,10 @@ func (j *jobsheet) isWorthStarting(index int) bool {
 }
 
 func (j *jobsheet) SetResult(result error, resultIndex int) {
+	if result == nil {
+		return
+	}
+
 	defer j.resultMutex.Unlock()
 	j.resultMutex.Lock()
 
